@@ -140,9 +140,6 @@ class Channel:
         :param session: User to move. Moves the pymumble client if a user
                         session is not supplied.
         """
-
-        # TODO: Move to users.py
-
         if session is None:
             session = self.mumble_object.users.myself_session
 

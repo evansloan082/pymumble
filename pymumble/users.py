@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from threading import Lock
+import threading
 
 from . import constants, messages, soundqueue
 
@@ -10,10 +10,9 @@ class Users(dict):
     def __init__(self, mumble_object, callbacks):
         self.mumble_object = mumble_object
         self.callbacks = callbacks
-
-        self.myself = None  # user object of the pymumble thread itself
-        self.myself_session = None  # session number of the pymumble thread itself
-        self.lock = Lock()
+        self.myself = None
+        self.myself_session = None
+        self.lock = threading.Lock()
 
     def update(self, message):
         """Update a user informations, based in an incoming message"""
@@ -47,67 +46,39 @@ class Users(dict):
         if session in self:
             self.myself = self[session]
 
-    @property
-    def count(self):
-        """Return the count of connected users"""
-        return len(self)
 
-
-class User(dict):
+class User:
     """Object that store one user"""
 
     def __init__(self, mumble_object, message):
         self.mumble_object = mumble_object
-        self['session'] = message.session
+        self.session = message.session
         self.update(message)
-
-        self.sound = soundqueue.SoundQueue(self.mumble_object)  # will hold this user incoming audio
+        self.sound = soundqueue.SoundQueue(self.mumble_object)
 
     def update(self, message):
         """Update user state, based on an incoming message"""
-        actions = dict()
-
-        if message.HasField("actor"):
-            actions["actor"] = message.actor
-
         for (field, value) in message.ListFields():
-            if field.name in ("session", "actor", "comment", "texture"):
+            if field.name in ('session', 'comment', 'texture'):
                 continue
-            actions.update(self.update_field(field.name, value))
+            setattr(self, field.name, value)
 
-        if message.HasField("comment_hash"):
-            if message.HasField("comment"):
+        if message.HasField('comment_hash'):
+            if message.HasField('comment'):
                 self.mumble_object.blobs[message.comment_hash] = message.comment
             else:
                 self.mumble_object.blobs.get_user_comment(message.comment_hash)
-        if message.HasField("texture_hash"):
-            if message.HasField("texture"):
+        if message.HasField('texture_hash'):
+            if message.HasField('texture'):
                 self.mumble_object.blobs[message.texture_hash] = message.texture
             else:
                 self.mumble_object.blobs.get_user_texture(message.texture_hash)
 
-        return actions  # return a dict, useful for the callback functions
-
-    def update_field(self, name, field):
-        """Update one state value for a user"""
-        actions = dict()
-        if name not in self or self[name] != field:
-            self[name] = field
-            actions[name] = field
-
-        return actions
-
-    def get_property(self, property):
-        if property in self:
-            return self[property]
-        else:
-            return None
-
     def mute(self):
         """Mute a user"""
-        params = {'session': self['session']}
+        params = {'session': self.session}
 
-        if self['session'] == self.mumble_object.users.myself_session:
+        if self.session == self.mumble_object.users.myself_session:
             params['self_mute'] = True
         else:
             params['mute'] = True
@@ -117,94 +88,103 @@ class User(dict):
 
     def unmute(self):
         """Unmute a user"""
-        params = {"session": self["session"]}
+        params = {'session': self.session}
 
-        if self["session"] == self.mumble_object.users.myself_session:
-            params["self_mute"] = False
+        if self.session == self.mumble_object.users.myself_session:
+            params['self_mute'] = False
         else:
-            params["mute"] = False
+            params['mute'] = False
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def deafen(self):
         """Deafen a user"""
-        params = {"session": self["session"]}
+        params = {'session': self.session}
 
-        if self["session"] == self.mumble_object.users.myself_session:
-            params["self_deaf"] = True
+        if self.session == self.mumble_object.users.myself_session:
+            params['self_deaf'] = True
         else:
-            params["deaf"] = True
+            params['deaf'] = True
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def undeafen(self):
         """Undeafen a user"""
-        params = {"session": self["session"]}
+        params = {'session': self.session}
 
-        if self["session"] == self.mumble_object.users.myself_session:
-            params["self_deaf"] = False
+        if self.session == self.mumble_object.users.myself_session:
+            params['self_deaf'] = False
         else:
-            params["deaf"] = False
+            params['deaf'] = False
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def suppress(self):
         """Disable a user"""
-        params = {"session": self["session"],
-                  "suppress": True}
+        params = {'session': self.session,
+                  'suppress': True}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def unsuppress(self):
         """Enable a user"""
-        params = {"session": self["session"],
-                  "suppress": False}
+        params = {'session': self.session,
+                  'suppress': False}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def recording(self):
         """Set the user as recording"""
-        params = {"session": self["session"],
-                  "recording": True}
+        params = {'session': self.session,
+                  'recording': True}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def unrecording(self):
         """Set the user as not recording"""
-        params = {"session": self["session"],
-                  "recording": False}
+        params = {'session': self.session,
+                  'recording': False}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def comment(self, comment):
         """Set the user comment"""
-        params = {"session": self["session"],
-                  "comment": comment}
+        params = {'session': self.session,
+                  'comment': comment}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
     def texture(self, texture):
         """Set the user texture"""
-        params = {"session": self["session"],
-                  "texture": texture}
+        params = {'session': self.session,
+                  'texture': texture}
 
         cmd = messages.ModUserState(self.mumble_object.users.myself_session, params)
         self.mumble_object.execute_command(cmd)
 
-    def move_in(self, channel_id):
-        session = self.mumble_object.users.myself_session
-        cmd = messages.MoveCommand(session, channel_id)
+    def move(self, channel_id=None):
+        """
+        Moves the user to a specific channel or the one that contains the
+        pymumble client.
+
+        :param channel: ID of the channel that the user is being moved to
+                        if channel ID is not supplied, it defaults to the
+                        client's channel ID
+        """
+        if channel_id is None:
+            channel_id = self.mumble_object.users.myself.channel_id
+        cmd = messages.MoveCommand(self.session, channel_id)
         self.mumble_object.execute_command(cmd)
 
     def send_message(self, message):
         """Send a text message to the user."""
-        cmd = messages.TextPrivateMessage(self["session"], message)
+        cmd = messages.TextPrivateMessage(self.session, message)
         self.mumble_object.execute_command(cmd)
