@@ -76,7 +76,7 @@ class CallBacks(dict):
 
         if self[callback]:
             for func in self[callback]:
-                if callback is PYMUMBLE_CLBK_TEXTMESSAGERECEIVED:
+                if callback is constants.PYMUMBLE_CLBK_TEXTMESSAGERECEIVED:
                     thr = threading.Thread(target=func, args=pos_parameters)
                     thr.start()
                 else:
