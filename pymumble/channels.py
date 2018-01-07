@@ -96,9 +96,9 @@ class Channels(dict):
         if name == '':
             return self[0]
 
-        for obj in list(self.values()):
-            if obj['name'] == name:
-                return obj
+        for channel in list(self.values()):
+            if channel.name == name:
+                return channel
 
         err = 'Channel {} does not exist'.format(name)
         raise UnknownChannelError(err)
