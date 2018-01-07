@@ -146,6 +146,17 @@ class Channel:
         cmd = messages.MoveCommand(session, self.channel_id)
         self.mumble_object.execute_command(cmd)
 
+    @property
+    def users(self):
+        """Returns list of users contained in a specific channel"""
+        channel_users = []
+        for user in self.mumble_object.users:
+            u = self.mumble_object.users[user]
+            if u.channel_id == self.channel_id:
+                channel_users.append(u)
+
+        return channel_users
+
     def send_text_message(self, message):
         """
         Sends a text message to the channel matching `self.channel_id`
