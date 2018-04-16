@@ -10,7 +10,7 @@ setup(
     maintainer_email='azlux@outlook.com',
     url='https://github.com/azlux/pymumble',
     license='GPLv3',
-    packages=['pymumble_py3'],
+    packages=['pymumble'],
     download_url='https://github.com/azlux/pymumble/archive/pymumble_py3.zip',
     classifiers=['Development Status :: 3 - Alpha',
                  'Intended Audience :: Developers',
